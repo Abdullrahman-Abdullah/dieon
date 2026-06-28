@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>
-     Resonta</title>
+    <title>Resonta</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* إعدادات المتغيرات للمظهرين الداكن والفاتح */
         :root {
             --bg-color: #0b0f19;
             --card-bg: #151f32;
@@ -17,84 +17,87 @@
             --success: #10b981;
             --danger: #ef4444;
             --modal-bg: rgba(0, 0, 0, 0.8);
+            --border-color: #1e293b;
         }
 
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        [data-theme="light"] {
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-color: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --modal-bg: rgba(0, 0, 0, 0.5);
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; transition: background 0.3s, border-color 0.3s; }
         body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; min-height: 100vh; }
         
-        .container { max-width: 800px; margin: 0 auto; }
+        .container { max-width: 900px; margin: 0 auto; }
         
-        header { text-align: center; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 15px; }
+        header { text-align: center; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; }
         header h1 { font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
 
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+
+        /* زر تغيير المظهر */
+        .btn-theme { background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color); width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+
         /* زر إضافة زبون علوي */
-        .btn-add-top { background: var(--accent-color); color: white; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2); }
+        .btn-add-top { background: var(--accent-color); color: white; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2); }
         .btn-add-top:hover { background: var(--accent-hover); transform: translateY(-1px); }
 
+        /* شريط الإحصائيات الجذّاب */
+        .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px 20px; display: flex; align-items: center; gap: 15px; }
+        .stat-icon { width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: white; }
+        .stat-info .stat-val { font-size: 1.4rem; font-weight: 800; }
+        .stat-info .stat-lbl { font-size: 0.85rem; color: var(--text-muted); }
+
         /* شبكة عرض اللاعبين العصرية */
-        .players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 15px; }
+        .players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
         
-        /* بطاقة اللاعب النظيفة */
-        .player-card {
-            background: var(--card-bg);
-            border-radius: 14px;
-            padding: 24px 20px;
-            text-align: center;
-            border: 1px solid #1e293b;
-            cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        .player-card:hover { border-color: var(--accent-color); transform: translateY(-3px); background: #1c283f; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        /* بطاقة اللاعب */
+        .player-card { background: var(--card-bg); border-radius: 14px; padding: 24px 20px; text-align: center; border: 1px solid var(--border-color); cursor: pointer; position: relative; }
+        .player-card:hover { border-color: var(--accent-color); transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
         
-        .player-name { font-size: 1.15rem; font-weight: 600; margin-bottom: 12px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .player-name { font-size: 1.15rem; font-weight: 600; margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .player-balance { font-size: 1.4rem; font-weight: 800; color: var(--success); }
         .player-balance.has-debt { color: var(--danger); }
 
         /* النوافذ المنبثقة (Modals) */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--modal-bg);
-            align-items: center; justify-content: center;
-            z-index: 1000;
-            backdrop-filter: blur(6px);
-        }
-        .modal-content {
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 400px;
-            border: 1px solid #2d3748;
-            position: relative;
-            animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-        }
-        @keyframes modalSlideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(6px); }
+        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 20px; width: 95%; max-width: 450px; border: 1px solid var(--border-color); position: relative; animation: modalSlideUp 0.25s ease-out; max-height: 90vh; display: flex; flex-direction: column; }
+        @keyframes modalSlideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-        .modal-title { font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; gap: 8px; }
-        .btn-close { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; transition: color 0.2s; }
-        .btn-close:hover { color: #fff; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-shrink: 0; }
+        .modal-title { font-size: 1.25rem; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .btn-close { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; }
+        .btn-close:hover { color: var(--text-color); }
 
-        .modal-body input {
-            width: 100%; padding: 14px; background: #0b0f19; border: 2px solid #1e293b; border-radius: 10px; color: white; text-align: center; font-size: 1.25rem; margin-bottom: 20px; outline: none; transition: border-color 0.2s;
-        }
+        .modal-body { overflow-y: auto; flex-grow: 1; padding-right: 5px; }
+        .modal-body input { width: 100%; padding: 14px; background: var(--bg-color); border: 2px solid var(--border-color); border-radius: 10px; color: var(--text-color); text-align: center; font-size: 1.25rem; margin-bottom: 15px; outline: none; }
         .modal-body input:focus { border-color: var(--accent-color); }
 
-        /* الأزرار الأيقونية داخل نوافذ العمليات */
-        .icon-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
-        .btn-icon { padding: 14px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1rem; transition: all 0.2s; }
+        /* الأزرار الأيقونية */
+        .icon-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .btn-icon { padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.95rem; }
         .btn-icon.add { background-color: var(--danger); }
         .btn-icon.sub { background-color: var(--success); }
         .btn-icon.clear { background-color: #475569; grid-column: span 2; }
         .btn-icon.save { background-color: var(--accent-color); grid-column: span 2; }
-        .btn-icon.delete { background-color: transparent; color: var(--text-muted); grid-column: span 2; font-size: 0.9rem; padding: 5px; margin-top: 10px;}
+        .btn-icon.delete { background-color: transparent; color: var(--text-muted); grid-column: span 2; font-size: 0.85rem; padding: 3px; margin-top: 5px;}
         .btn-icon.delete:hover { color: var(--danger); }
-        .btn-icon:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-icon:hover { opacity: 0.9; }
+
+        /* قسم سجل التحركات الدقيق */
+        .history-section { border-top: 1px solid var(--border-color); padding-top: 15px; }
+        .history-title { font-size: 1rem; font-weight: bold; margin-bottom: 10px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+        .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; border: 1px solid var(--border-color); }
+        .history-item .type-add { color: var(--danger); font-weight: bold; }
+        .history-item .type-sub { color: var(--success); font-weight: bold; }
+        .history-item .type-clear { color: var(--text-muted); font-weight: bold; }
+        .history-date { font-size: 0.75rem; color: var(--text-muted); }
     </style>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -103,9 +106,27 @@
 
 <div class="container">
     <header>
-        <h1><i class="fa-solid fa-wallet" style="color: var(--accent-color);"></i>Resonta</h1>
-        <button class="btn-add-top" onclick="openAddPlayerModal()"><i class="fa-solid fa-user-plus"></i>Add Customer</button>
+        <h1><i class="fa-solid fa-gamepad" style="color: var(--accent-color);"></i>Resonta </h1>
+        <div class="header-actions">
+            <button class="btn-theme" onclick="toggleTheme()" id="theme-btn" title="تغيير المظهر"><i class="fa-solid fa-sun"></i></button>
+            <button class="btn-add-top" onclick="openAddPlayerModal()"><i class="fa-solid fa-user-plus"></i> زبون جديد</button>
+        </div>
     </header>
+
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--danger);"><i class="fa-solid fa-money-bill-wave"></i></div>
+            <div class="stat-info"><div class="stat-val" id="stat-total-debt">0 ل.س</div><div class="stat-lbl">إجمالي الديون المعلقة</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--accent-color);"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-info"><div class="stat-val" id="stat-debtors-count">0</div><div class="stat-lbl">عدد المدينين الحاليين</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #9333ea;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="stat-info"><div class="stat-val" id="stat-max-debt">0 ل.س</div><div class="stat-lbl">أعلى مديونية زبون</div></div>
+        </div>
+    </div>
 
     <div class="players-grid" id="players-container"></div>
 </div>
@@ -113,12 +134,12 @@
 <div class="modal" id="add-player-modal">
     <div class="modal-content">
         <div class="modal-header">
-            <span class="modal-title"><i class="fa-solid fa-user-plus" style="color: var(--accent-color);"></i> Add New Customer </span>
+            <span class="modal-title"><i class="fa-solid fa-user-plus" style="color: var(--accent-color);"></i> زبون جديد</span>
             <button class="btn-close" onclick="closeAddPlayerModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body">
-            <input type="text" id="new-player-name-input" placeholder="Customer Name..." autocomplete="off">
-            <button class="btn-icon save" onclick="submitNewPlayer()"><i class="fa-solid fa-floppy-disk"></i>  Save | Add</button>
+            <input type="text" id="new-player-name-input" placeholder="اسم الزبون ..." autocomplete="off">
+            <button class="btn-icon save" onclick="submitNewPlayer()"><i class="fa-solid fa-floppy-disk"></i> إضافة للسيستم</button>
         </div>
     </div>
 </div>
@@ -126,23 +147,28 @@
 <div class="modal" id="action-modal">
     <div class="modal-content">
         <div class="modal-header">
-            <span class="modal-title" id="modal-player-name">Customer Name </span>
+            <span class="modal-title" id="modal-player-name">اسم الزبون</span>
             <button class="btn-close" onclick="closeActionModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body">
             <input type="number" id="modal-amount-input" placeholder="0 ل.س" min="0">
             <div class="icon-actions">
-                <button class="btn-icon add" onclick="executeAction('add')"><i class="fa-solid fa-plus"></i>  اضافة </button>
-                <button class="btn-icon sub" onclick="executeAction('sub')"><i class="fa-solid fa-check"></i> دفع</button>
-                <button class="btn-icon clear" onclick="executeAction('clear')"><i class="fa-solid fa-rotate-left"></i> تصفير الحساب</button>
-                <button class="btn-icon delete" onclick="executeAction('delete')"><i class="fa-solid fa-trash-can"></i> حذف من النظام</button>
+                <button class="btn-icon add" onclick="executeAction('add')"><i class="fa-solid fa-plus"></i> إضافة دين</button>
+                <button class="btn-icon sub" onclick="executeAction('sub')"><i class="fa-solid fa-check"></i> تسديد</button>
+                <button class="btn-icon clear" onclick="executeAction('clear')"><i class="fa-solid fa-rotate-left"></i> تصفير</button>
+                <button class="btn-icon delete" onclick="executeAction('delete')"><i class="fa-solid fa-trash-can"></i> حذف زبون</button>
+            </div>
+            
+            <div class="history-section">
+                <div class="history-title"><i class="fa-solid fa-clock-rotate-left"></i> سجل عمليات الحساب</div>
+                <div class="history-list" id="modal-history-list"></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // إعدادات الـ Firebase الخاصة بمشروعك الحالي
+    // إعدادات الـ Firebase الخاصة بمشروعك
     const firebaseConfig = {
         apiKey: "AIzaSyAdIMUe00y-jmZL6xuyGeOTpQB9GcNzMyw", 
         authDomain: "dieon-5af70.firebaseapp.com",
@@ -159,43 +185,70 @@
 
     let activePlayerId = null;
 
-    // فتح واجهة إضافة زبون المخصصة
+    // --- نظام المظهر (داكن / فاتح) ---
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+    }
+
+    function updateThemeIcon(theme) {
+        const icon = document.getElementById('theme-btn').querySelector('i');
+        if (theme === 'light') {
+            icon.className = 'fa-solid fa-moon';
+        } else {
+            icon.className = 'fa-solid fa-sun';
+        }
+    }
+
+    // --- نظام إدارة الزبائن الأساسي ---
     function openAddPlayerModal() {
         document.getElementById('new-player-name-input').value = '';
         document.getElementById('add-player-modal').style.display = 'flex';
         document.getElementById('new-player-name-input').focus();
     }
+    function closeAddPlayerModal() { document.getElementById('add-player-modal').style.display = 'none'; }
 
-    // إغلاق واجهة إضافة زبون
-    function closeAddPlayerModal() {
-        document.getElementById('add-player-modal').style.display = 'none';
-    }
-
-    // إرسال البيانات لقاعدة البيانات
     function submitNewPlayer() {
         const input = document.getElementById('new-player-name-input');
         const name = input.value.trim();
         if (name !== "") {
-            dbRef.push().set({ name: name, balance: 0 }).then(() => {
-                closeAddPlayerModal();
-            });
+            dbRef.push().set({ name: name, balance: 0 }).then(() => closeAddPlayerModal());
         }
     }
 
-    // جلب وعرض البيانات تلقائياً بأسلوب الـ Realtime
+    // استماع البيانات المباشر وتحديث اللوحة والإحصائيات
     dbRef.on('value', snapshot => {
         const data = snapshot.val();
         const container = document.getElementById('players-container');
         container.innerHTML = '';
 
+        let totalDebt = 0;
+        let debtorsCount = 0;
+        let maxDebt = 0;
+
         if (!data) {
-            container.innerHTML = `<p style="text-align:center; color:var(--text-muted); grid-column: 1/-1; padding: 40px 0;">لا يوجد حسابات مضافة حالياً.</p>`;
+            container.innerHTML = `<p style="text-align:center; color:var(--text-muted); grid-column: 1/-1; padding: 40px 0;">لا يوجد حسابات.</p>`;
+            updateStats(0, 0, 0);
             return;
         }
 
         Object.keys(data).forEach(id => {
             const player = data[id];
             const hasDebt = player.balance > 0;
+
+            // حساب الحقل المالي الإحصائي
+            if (player.balance > 0) {
+                totalDebt += player.balance;
+                debtorsCount++;
+                if (player.balance > maxDebt) maxDebt = player.balance;
+            }
 
             const card = document.createElement('div');
             card.className = 'player-card';
@@ -206,24 +259,66 @@
             `;
             container.appendChild(card);
         });
+
+        updateStats(totalDebt, debtorsCount, maxDebt);
+
+        // إذا كانت نافذة العمليات مفتوحة حالياً، نحدث السجل بشكل فوري ونشط
+        if (activePlayerId && data[activePlayerId]) {
+            renderHistory(data[activePlayerId].history);
+        }
     });
 
-    // فتح واجهة العمليات
+    function updateStats(total, count, max) {
+        document.getElementById('stat-total-debt').innerText = `${total} ل.س`;
+        document.getElementById('stat-debtors-count').innerText = count;
+        document.getElementById('stat-max-debt').innerText = `${max} ل.س`;
+    }
+
+    // فتح لوحة العمليات والسجلات الملحقة بها
     function openActionModal(id, name) {
         activePlayerId = id;
         document.getElementById('modal-player-name').innerHTML = `<i class="fa-solid fa-user" style="color: var(--accent-color);"></i> ${name}`;
         document.getElementById('modal-amount-input').value = '';
         document.getElementById('action-modal').style.display = 'flex';
         document.getElementById('modal-amount-input').focus();
+
+        // جلب سجل التحركات للاعب المعني فوراً
+        db.ref(`players/${id}`).once('value', snapshot => {
+            if(snapshot.exists()) renderHistory(snapshot.val().history);
+        });
     }
 
-    // إغلاق واجهة العمليات
-    function closeActionModal() {
-        document.getElementById('action-modal').style.display = 'none';
-        activePlayerId = null;
+    function closeActionModal() { document.getElementById('action-modal').style.display = 'none'; activePlayerId = null; }
+
+    // عرض مخرجات السجل التاريخي مرتبة من الأحدث إلى الأقدم
+    function renderHistory(historyData) {
+        const listContainer = document.getElementById('modal-history-list');
+        listContainer.innerHTML = '';
+
+        if (!historyData) {
+            listContainer.innerHTML = `<p style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding:10px 0;">لا يوجد عمليات مسجلة لهذا الحساب بعد.</p>`;
+            return;
+        }
+
+        // تحويل الكائن المرجعي إلى مصفوفة لترتيبها من الأحدث للأقدم
+        Object.keys(historyData).reverse().forEach(key => {
+            const item = historyData[key];
+            let classType = item.type === 'إضافة' ? 'type-add' : (item.type === 'تسديد' ? 'type-sub' : 'type-clear');
+            
+            const row = document.createElement('div');
+            row.className = 'history-item';
+            row.innerHTML = `
+                <div>
+                    <span class="${classType}">${item.type}:</span> 
+                    <span>${item.amount} ل.س</span>
+                </div>
+                <span class="history-date">${item.date}</span>
+            `;
+            listContainer.appendChild(row);
+        });
     }
 
-    // تنفيذ العمليات الحسابية والحذف
+    // تنفيذ العمليات وتوثيق الحركات بالسجل التاريخي
     function executeAction(action) {
         if (!activePlayerId) return;
 
@@ -232,38 +327,53 @@
         const playerRef = db.ref(`players/${activePlayerId}`);
 
         if (action === 'delete') {
-            if (confirm("حذف هذا الحساب نهائياً من السيستم؟")) {
-                playerRef.remove();
-                closeActionModal();
-            }
+            if (confirm("حذف الحساب نهائياً؟")) { playerRef.remove(); closeActionModal(); }
+            return;
+        }
+
+        if ((action === 'add' || action === 'sub') && amount <= 0) {
+            alert("يرجى كتابة مبلغ أكبر من الصفر");
             return;
         }
 
         playerRef.once('value', snapshot => {
             let currentBalance = snapshot.val().balance || 0;
+            let actionType = '';
+            let loggedAmount = amount;
 
             if (action === 'add') {
                 currentBalance += amount;
+                actionType = 'إضافة';
             } else if (action === 'sub') {
                 currentBalance -= amount;
                 if (currentBalance < 0) currentBalance = 0;
+                actionType = 'تسديد';
             } else if (action === 'clear') {
-                if (!confirm("هل تريد تصفير الحساب؟")) return;
+                if (!confirm("تصفير كامل ديون هذا الزبون؟")) return;
+                loggedAmount = currentBalance;
                 currentBalance = 0;
+                actionType = 'تصفير';
             }
 
-            playerRef.update({ balance: currentBalance }).then(() => {
-                closeActionModal();
+            // صياغة الوقت السوري الحالي المحلي بدقة
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ar-SY') + ' ' + now.toLocaleTimeString('ar-SY', {hour: '2-digit', minute:'2-digit'});
+
+            // دفع التحديث المالي + تسجيل الحركة في السجل الفرعي التابع له في السيرفر
+            const updates = { balance: currentBalance };
+            playerRef.update(updates).then(() => {
+                playerRef.child('history').push({
+                    type: actionType,
+                    amount: loggedAmount,
+                    date: dateStr
+                }).then(() => closeActionModal());
             });
         });
     }
 
-    // إغلاق النوافذ عند الضغط خارج المربع المخصص للبيانات
     window.onclick = function(event) {
-        const actionModal = document.getElementById('action-modal');
-        const addPlayerModal = document.getElementById('add-player-modal');
-        if (event.target === actionModal) closeActionModal();
-        if (event.target === addPlayerModal) closeAddPlayerModal();
+        if (event.target === document.getElementById('action-modal')) closeActionModal();
+        if (event.target === document.getElementById('add-player-modal')) closeAddPlayerModal();
     }
 </script>
 </body>
