@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة ديون الصالة - واجهة احترافية متكاملة</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151f32;
+            --accent-color: #2563eb;
+            --accent-hover: #1d4ed8;
+            --text-color: #f8fafc;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --modal-bg: rgba(0, 0, 0, 0.8);
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; min-height: 100vh; }
+        
+        .container { max-width: 800px; margin: 0 auto; }
+        
+        header { text-align: center; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 15px; }
+        header h1 { font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+
+        /* زر إضافة زبون علوي */
+        .btn-add-top { background: var(--accent-color); color: white; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2); }
+        .btn-add-top:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+        /* شبكة عرض اللاعبين العصرية */
+        .players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 15px; }
+        
+        /* بطاقة اللاعب النظيفة */
+        .player-card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 24px 20px;
+            text-align: center;
+            border: 1px solid #1e293b;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .player-card:hover { border-color: var(--accent-color); transform: translateY(-3px); background: #1c283f; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        
+        .player-name { font-size: 1.15rem; font-weight: 600; margin-bottom: 12px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .player-balance { font-size: 1.4rem; font-weight: 800; color: var(--success); }
+        .player-balance.has-debt { color: var(--danger); }
+
+        /* النوافذ المنبثقة (Modals) */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--modal-bg);
+            align-items: center; justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(6px);
+        }
+        .modal-content {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid #2d3748;
+            position: relative;
+            animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        @keyframes modalSlideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .modal-title { font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .btn-close { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; transition: color 0.2s; }
+        .btn-close:hover { color: #fff; }
+
+        .modal-body input {
+            width: 100%; padding: 14px; background: #0b0f19; border: 2px solid #1e293b; border-radius: 10px; color: white; text-align: center; font-size: 1.25rem; margin-bottom: 20px; outline: none; transition: border-color 0.2s;
+        }
+        .modal-body input:focus { border-color: var(--accent-color); }
+
+        /* الأزرار الأيقونية داخل نوافذ العمليات */
+        .icon-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .btn-icon { padding: 14px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1rem; transition: all 0.2s; }
+        .btn-icon.add { background-color: var(--danger); }
+        .btn-icon.sub { background-color: var(--success); }
+        .btn-icon.clear { background-color: #475569; grid-column: span 2; }
+        .btn-icon.save { background-color: var(--accent-color); grid-column: span 2; }
+        .btn-icon.delete { background-color: transparent; color: var(--text-muted); grid-column: span 2; font-size: 0.9rem; padding: 5px; margin-top: 10px;}
+        .btn-icon.delete:hover { color: var(--danger); }
+        .btn-icon:hover { opacity: 0.9; transform: translateY(-1px); }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1><i class="fa-solid fa-wallet" style="color: var(--accent-color);"></i>دفتر الحسابات الرقمي</h1>
+        <button class="btn-add-top" onclick="openAddPlayerModal()"><i class="fa-solid fa-user-plus"></i> زبون جديد</button>
+    </header>
+
+    <div class="players-grid" id="players-container"></div>
+</div>
+
+<div class="modal" id="add-player-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title"><i class="fa-solid fa-user-plus" style="color: var(--accent-color);"></i> إضافة زبون جديد</span>
+            <button class="btn-close" onclick="closeAddPlayerModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="text" id="new-player-name-input" placeholder="اسم الزبون ثلاثي أو ثنائي..." autocomplete="off">
+            <button class="btn-icon save" onclick="submitNewPlayer()"><i class="fa-solid fa-floppy-disk"></i> حفظ وإضافة</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="action-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title" id="modal-player-name">اسم الزبون</span>
+            <button class="btn-close" onclick="closeActionModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="number" id="modal-amount-input" placeholder="0 ل.س" min="0">
+            <div class="icon-actions">
+                <button class="btn-icon add" onclick="executeAction('add')"><i class="fa-solid fa-plus"></i> إضافة دين</button>
+                <button class="btn-icon sub" onclick="executeAction('sub')"><i class="fa-solid fa-check"></i> تسديد</button>
+                <button class="btn-icon clear" onclick="executeAction('clear')"><i class="fa-solid fa-rotate-left"></i> تصفير الحساب</button>
+                <button class="btn-icon delete" onclick="executeAction('delete')"><i class="fa-solid fa-trash-can"></i> حذف من النظام</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // إعدادات الـ Firebase الخاصة بمشروعك الحالي
+    const firebaseConfig = {
+        apiKey: "AIzaSyAdIMUe00y-jmZL6xuyGeOTpQB9GcNzMyw", 
+        authDomain: "dieon-5af70.firebaseapp.com",
+        databaseURL: "https://dieon-5af70-default-rtdb.firebaseio.com",
+        projectId: "dieon-5af70",
+        storageBucket: "dieon-5af70.appspot.com",
+        messagingSenderId: "951478263014",
+        appId: "1:1024964423564:web:e4c7be604350104a01f0a9"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const dbRef = db.ref('players');
+
+    let activePlayerId = null;
+
+    // فتح واجهة إضافة زبون المخصصة
+    function openAddPlayerModal() {
+        document.getElementById('new-player-name-input').value = '';
+        document.getElementById('add-player-modal').style.display = 'flex';
+        document.getElementById('new-player-name-input').focus();
+    }
+
+    // إغلاق واجهة إضافة زبون
+    function closeAddPlayerModal() {
+        document.getElementById('add-player-modal').style.display = 'none';
+    }
+
+    // إرسال البيانات لقاعدة البيانات
+    function submitNewPlayer() {
+        const input = document.getElementById('new-player-name-input');
+        const name = input.value.trim();
+        if (name !== "") {
+            dbRef.push().set({ name: name, balance: 0 }).then(() => {
+                closeAddPlayerModal();
+            });
+        }
+    }
+
+    // جلب وعرض البيانات تلقائياً بأسلوب الـ Realtime
+    dbRef.on('value', snapshot => {
+        const data = snapshot.val();
+        const container = document.getElementById('players-container');
+        container.innerHTML = '';
+
+        if (!data) {
+            container.innerHTML = `<p style="text-align:center; color:var(--text-muted); grid-column: 1/-1; padding: 40px 0;">لا يوجد حسابات مضافة حالياً.</p>`;
+            return;
+        }
+
+        Object.keys(data).forEach(id => {
+            const player = data[id];
+            const hasDebt = player.balance > 0;
+
+            const card = document.createElement('div');
+            card.className = 'player-card';
+            card.onclick = () => openActionModal(id, player.name);
+            card.innerHTML = `
+                <div class="player-name">${player.name}</div>
+                <div class="player-balance ${hasDebt ? 'has-debt' : ''}">${player.balance} ل.س</div>
+            `;
+            container.appendChild(card);
+        });
+    });
+
+    // فتح واجهة العمليات
+    function openActionModal(id, name) {
+        activePlayerId = id;
+        document.getElementById('modal-player-name').innerHTML = `<i class="fa-solid fa-user" style="color: var(--accent-color);"></i> ${name}`;
+        document.getElementById('modal-amount-input').value = '';
+        document.getElementById('action-modal').style.display = 'flex';
+        document.getElementById('modal-amount-input').focus();
+    }
+
+    // إغلاق واجهة العمليات
+    function closeActionModal() {
+        document.getElementById('action-modal').style.display = 'none';
+        activePlayerId = null;
+    }
+
+    // تنفيذ العمليات الحسابية والحذف
+    function executeAction(action) {
+        if (!activePlayerId) return;
+
+        const input = document.getElementById('modal-amount-input');
+        const amount = parseInt(input.value) || 0;
+        const playerRef = db.ref(`players/${activePlayerId}`);
+
+        if (action === 'delete') {
+            if (confirm("حذف هذا الحساب نهائياً من السيستم؟")) {
+                playerRef.remove();
+                closeActionModal();
+            }
+            return;
+        }
+
+        playerRef.once('value', snapshot => {
+            let currentBalance = snapshot.val().balance || 0;
+
+            if (action === 'add') {
+                currentBalance += amount;
+            } else if (action === 'sub') {
+                currentBalance -= amount;
+                if (currentBalance < 0) currentBalance = 0;
+            } else if (action === 'clear') {
+                if (!confirm("هل تريد تصفير الحساب؟")) return;
+                currentBalance = 0;
+            }
+
+            playerRef.update({ balance: currentBalance }).then(() => {
+                closeActionModal();
+            });
+        });
+    }
+
+    // إغلاق النوافذ عند الضغط خارج المربع المخصص للبيانات
+    window.onclick = function(event) {
+        const actionModal = document.getElementById('action-modal');
+        const addPlayerModal = document.getElementById('add-player-modal');
+        if (event.target === actionModal) closeActionModal();
+        if (event.target === addPlayerModal) closeAddPlayerModal();
+    }
+</script>
+</body>
+</html>
