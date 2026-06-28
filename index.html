@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة ديون الصالة - واجهة احترافية متكاملة</title>
+    <title>
+     Resonta</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -102,8 +103,8 @@
 
 <div class="container">
     <header>
-        <h1><i class="fa-solid fa-wallet" style="color: var(--accent-color);"></i>دفتر الحسابات الرقمي</h1>
-        <button class="btn-add-top" onclick="openAddPlayerModal()"><i class="fa-solid fa-user-plus"></i> زبون جديد</button>
+        <h1><i class="fa-solid fa-wallet" style="color: var(--accent-color);"></i>Resonta</h1>
+        <button class="btn-add-top" onclick="openAddPlayerModal()"><i class="fa-solid fa-user-plus"></i>Add Customer</button>
     </header>
 
     <div class="players-grid" id="players-container"></div>
@@ -112,12 +113,12 @@
 <div class="modal" id="add-player-modal">
     <div class="modal-content">
         <div class="modal-header">
-            <span class="modal-title"><i class="fa-solid fa-user-plus" style="color: var(--accent-color);"></i> إضافة زبون جديد</span>
+            <span class="modal-title"><i class="fa-solid fa-user-plus" style="color: var(--accent-color);"></i> Add New Customer </span>
             <button class="btn-close" onclick="closeAddPlayerModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body">
             <input type="text" id="new-player-name-input" placeholder="اسم الزبون ثلاثي أو ثنائي..." autocomplete="off">
-            <button class="btn-icon save" onclick="submitNewPlayer()"><i class="fa-solid fa-floppy-disk"></i> حفظ وإضافة</button>
+            <button class="btn-icon save" onclick="submitNewPlayer()"><i class="fa-solid fa-floppy-disk"></i>  Save | Add</button>
         </div>
     </div>
 </div>
@@ -125,14 +126,14 @@
 <div class="modal" id="action-modal">
     <div class="modal-content">
         <div class="modal-header">
-            <span class="modal-title" id="modal-player-name">اسم الزبون</span>
+            <span class="modal-title" id="modal-player-name">Customer Name </span>
             <button class="btn-close" onclick="closeActionModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body">
             <input type="number" id="modal-amount-input" placeholder="0 ل.س" min="0">
             <div class="icon-actions">
-                <button class="btn-icon add" onclick="executeAction('add')"><i class="fa-solid fa-plus"></i> إضافة دين</button>
-                <button class="btn-icon sub" onclick="executeAction('sub')"><i class="fa-solid fa-check"></i> تسديد</button>
+                <button class="btn-icon add" onclick="executeAction('add')"><i class="fa-solid fa-plus"></i>  اضافة </button>
+                <button class="btn-icon sub" onclick="executeAction('sub')"><i class="fa-solid fa-check"></i> دفع</button>
                 <button class="btn-icon clear" onclick="executeAction('clear')"><i class="fa-solid fa-rotate-left"></i> تصفير الحساب</button>
                 <button class="btn-icon delete" onclick="executeAction('delete')"><i class="fa-solid fa-trash-can"></i> حذف من النظام</button>
             </div>
