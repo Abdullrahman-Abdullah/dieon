@@ -32,6 +32,9 @@
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; transition: background 0.3s, border-color 0.3s; }
         body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; min-height: 100vh; }
         
+        /* إخفاء المحتوى الرئيسي حتى تتم المصادقة */
+        #main-content { display: none; }
+
         .container { max-width: 900px; margin: 0 auto; }
         
         header { text-align: center; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; }
@@ -98,13 +101,27 @@
         .history-item .type-sub { color: var(--success); font-weight: bold; }
         .history-item .type-clear { color: var(--text-muted); font-weight: bold; }
         .history-date { font-size: 0.75rem; color: var(--text-muted); }
+
+        /* شاشة القفل والمصادقة */
+        .auth-container { display: flex; min-height: 100vh; align-items: center; justify-content: center; }
+        .auth-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 30px; border-radius: 20px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .auth-card h2 { font-size: 1.4rem; margin-bottom: 20px; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
-<div class="container">
+<div id="auth-screen" class="auth-container">
+    <div class="auth-card">
+        <h2><i class="fa-solid fa-lock" style="color: var(--accent-color); margin-left: 10px;"></i>النظام محمي</h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.9rem;">يرجى إدخال رمز الدخول للمتابعة</p>
+        <input type="password" id="auth-code-input" style="width: 100%; padding: 14px; background: var(--bg-color); border: 2px solid var(--border-color); border-radius: 10px; color: var(--text-color); text-align: center; font-size: 1.5rem; margin-bottom: 20px; outline: none;" placeholder="••••">
+        <button class="btn-icon save" onclick="verifyAuthCode()"><i class="fa-solid fa-key"></i> تحقق ودخول</button>
+    </div>
+</div>
+
+<div id="main-content" class="container">
     <header>
         <h1><i class="fa-solid fa-gamepad" style="color: var(--accent-color);"></i>Resonta </h1>
         <div class="header-actions">
@@ -185,6 +202,118 @@
 
     let activePlayerId = null;
 
+    // --- نظام المصادقة وإدارة الأجهزة ---
+    function checkDeviceAuth() {
+        const deviceId = localStorage.getItem('resonta_device_id');
+        if (!deviceId) {
+            showAuthScreen();
+            return;
+        }
+
+        // التحقق المستمر ومراقبة إلغاء المصادقة من قاعدة البيانات فوراً
+        db.ref(`allowed_devices/${deviceId}`).on('value', snapshot => {
+            if (snapshot.exists() && snapshot.val() === true) {
+                showMainContent();
+            } else {
+                localStorage.removeItem('resonta_device_id');
+                showAuthScreen();
+            }
+        });
+    }
+
+    function showAuthScreen() {
+        document.getElementById('auth-screen').style.display = 'flex';
+        document.getElementById('main-content').style.display = 'none';
+    }
+
+    function showMainContent() {
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        // بدء الاستماع الحقيقي للبيانات فقط بعد نجاح المصادقة لضمان الأمان
+        initAppListeners();
+    }
+
+    function verifyAuthCode() {
+        const inputCode = document.getElementById('auth-code-input').value.trim();
+        if (!inputCode) return;
+
+        db.ref('auth_code').once('value', snapshot => {
+            const exactCode = snapshot.val();
+            
+            // في حال كانت قاعدة البيانات فارغة وجديدة تماماً
+            if (exactCode === null) {
+                alert("لم يتم تعيين رمز في قاعدة البيانات بعد. تم تعيين رمزك الحالي كرمز افتراضي للوحة التحكم.");
+                db.ref('auth_code').set(inputCode);
+                authorizeCurrentDevice();
+                return;
+            }
+
+            if (inputCode === String(exactCode)) {
+                authorizeCurrentDevice();
+            } else {
+                alert("الرمز غير صحيح!");
+            }
+        });
+    }
+
+    function authorizeCurrentDevice() {
+        // توليد معرف فريد عشوائي للجهاز الحالي
+        const newDeviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+        db.ref(`allowed_devices/${newDeviceId}`).set(true).then(() => {
+            localStorage.setItem('resonta_device_id', newDeviceId);
+            checkDeviceAuth();
+        });
+    }
+
+    // استدعاء التحقق عند التحميل
+    checkDeviceAuth();
+
+    // السير المعتاد للتطبيق بعد تخطي شاشة القفل
+    function initAppListeners() {
+        dbRef.off('value'); // تجنب التكرار
+        dbRef.on('value', snapshot => {
+            const data = snapshot.val();
+            const container = document.getElementById('players-container');
+            container.innerHTML = '';
+
+            let totalDebt = 0;
+            let debtorsCount = 0;
+            let maxDebt = 0;
+
+            if (!data) {
+                container.innerHTML = `<p style="text-align:center; color:var(--text-muted); grid-column: 1/-1; padding: 40px 0;">لا يوجد حسابات.</p>`;
+                updateStats(0, 0, 0);
+                return;
+            }
+
+            Object.keys(data).forEach(id => {
+                const player = data[id];
+                const hasDebt = player.balance > 0;
+
+                if (player.balance > 0) {
+                    totalDebt += player.balance;
+                    debtorsCount++;
+                    if (player.balance > maxDebt) maxDebt = player.balance;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'player-card';
+                card.onclick = () => openActionModal(id, player.name);
+                card.innerHTML = `
+                    <div class="player-name">${player.name}</div>
+                    <div class="player-balance ${hasDebt ? 'has-debt' : ''}">${player.balance} ل.س</div>
+                `;
+                container.appendChild(card);
+            });
+
+            updateStats(totalDebt, debtorsCount, maxDebt);
+
+            if (activePlayerId && data[activePlayerId]) {
+                renderHistory(data[activePlayerId].history);
+            }
+        });
+    }
+
     // --- نظام المظهر (داكن / فاتح) ---
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
@@ -223,58 +352,12 @@
         }
     }
 
-    // استماع البيانات المباشر وتحديث اللوحة والإحصائيات
-    dbRef.on('value', snapshot => {
-        const data = snapshot.val();
-        const container = document.getElementById('players-container');
-        container.innerHTML = '';
-
-        let totalDebt = 0;
-        let debtorsCount = 0;
-        let maxDebt = 0;
-
-        if (!data) {
-            container.innerHTML = `<p style="text-align:center; color:var(--text-muted); grid-column: 1/-1; padding: 40px 0;">لا يوجد حسابات.</p>`;
-            updateStats(0, 0, 0);
-            return;
-        }
-
-        Object.keys(data).forEach(id => {
-            const player = data[id];
-            const hasDebt = player.balance > 0;
-
-            // حساب الحقل المالي الإحصائي
-            if (player.balance > 0) {
-                totalDebt += player.balance;
-                debtorsCount++;
-                if (player.balance > maxDebt) maxDebt = player.balance;
-            }
-
-            const card = document.createElement('div');
-            card.className = 'player-card';
-            card.onclick = () => openActionModal(id, player.name);
-            card.innerHTML = `
-                <div class="player-name">${player.name}</div>
-                <div class="player-balance ${hasDebt ? 'has-debt' : ''}">${player.balance} ل.س</div>
-            `;
-            container.appendChild(card);
-        });
-
-        updateStats(totalDebt, debtorsCount, maxDebt);
-
-        // إذا كانت نافذة العمليات مفتوحة حالياً، نحدث السجل بشكل فوري ونشط
-        if (activePlayerId && data[activePlayerId]) {
-            renderHistory(data[activePlayerId].history);
-        }
-    });
-
     function updateStats(total, count, max) {
         document.getElementById('stat-total-debt').innerText = `${total} ل.س`;
         document.getElementById('stat-debtors-count').innerText = count;
         document.getElementById('stat-max-debt').innerText = `${max} ل.س`;
     }
 
-    // فتح لوحة العمليات والسجلات الملحقة بها
     function openActionModal(id, name) {
         activePlayerId = id;
         document.getElementById('modal-player-name').innerHTML = `<i class="fa-solid fa-user" style="color: var(--accent-color);"></i> ${name}`;
@@ -282,7 +365,6 @@
         document.getElementById('action-modal').style.display = 'flex';
         document.getElementById('modal-amount-input').focus();
 
-        // جلب سجل التحركات للاعب المعني فوراً
         db.ref(`players/${id}`).once('value', snapshot => {
             if(snapshot.exists()) renderHistory(snapshot.val().history);
         });
@@ -290,7 +372,6 @@
 
     function closeActionModal() { document.getElementById('action-modal').style.display = 'none'; activePlayerId = null; }
 
-    // عرض مخرجات السجل التاريخي مرتبة من الأحدث إلى الأقدم
     function renderHistory(historyData) {
         const listContainer = document.getElementById('modal-history-list');
         listContainer.innerHTML = '';
@@ -300,7 +381,6 @@
             return;
         }
 
-        // تحويل الكائن المرجعي إلى مصفوفة لترتيبها من الأحدث للأقدم
         Object.keys(historyData).reverse().forEach(key => {
             const item = historyData[key];
             let classType = item.type === 'إضافة' ? 'type-add' : (item.type === 'تسديد' ? 'type-sub' : 'type-clear');
@@ -318,7 +398,6 @@
         });
     }
 
-    // تنفيذ العمليات وتوثيق الحركات بالسجل التاريخي
     function executeAction(action) {
         if (!activePlayerId) return;
 
@@ -355,11 +434,9 @@
                 actionType = 'تصفير';
             }
 
-            // صياغة الوقت السوري الحالي المحلي بدقة
             const now = new Date();
             const dateStr = now.toLocaleDateString('ar-SY') + ' ' + now.toLocaleTimeString('ar-SY', {hour: '2-digit', minute:'2-digit'});
 
-            // دفع التحديث المالي + تسجيل الحركة في السجل الفرعي التابع له في السيرفر
             const updates = { balance: currentBalance };
             playerRef.update(updates).then(() => {
                 playerRef.child('history').push({
