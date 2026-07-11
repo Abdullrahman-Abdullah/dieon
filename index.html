@@ -81,6 +81,9 @@
         .modal-body input { width: 100%; padding: 14px; background: var(--bg-color); border: 2px solid var(--border-color); border-radius: 10px; color: var(--text-color); text-align: center; font-size: 1.25rem; margin-bottom: 15px; outline: none; }
         .modal-body input:focus { border-color: var(--accent-color); }
 
+        /* حقل الملاحظات الصغير المتناسق */
+        .modal-body .note-input { font-size: 1rem; padding: 10px; margin-bottom: 15px; text-align: right; }
+
         /* الأزرار الأيقونية */
         .icon-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .btn-icon { padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.95rem; }
@@ -96,11 +99,13 @@
         .history-section { border-top: 1px solid var(--border-color); padding-top: 15px; }
         .history-title { font-size: 1rem; font-weight: bold; margin-bottom: 10px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
         .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto; }
-        .history-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; border: 1px solid var(--border-color); }
+        .history-item { display: flex; flex-direction: column; background: var(--bg-color); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; border: 1px solid var(--border-color); gap: 4px; }
+        .history-main-info { display: flex; justify-content: space-between; align-items: center; }
         .history-item .type-add { color: var(--danger); font-weight: bold; }
         .history-item .type-sub { color: var(--success); font-weight: bold; }
         .history-item .type-clear { color: var(--text-muted); font-weight: bold; }
         .history-date { font-size: 0.75rem; color: var(--text-muted); }
+        .history-note { font-size: 0.8rem; color: #a1a1aa; border-top: 1px dashed var(--border-color); padding-top: 4px; text-align: right; word-break: break-all; }
 
         /* شاشة القفل والمصادقة */
         .auth-container { display: flex; min-height: 100vh; align-items: center; justify-content: center; }
@@ -169,6 +174,7 @@
         </div>
         <div class="modal-body">
             <input type="number" id="modal-amount-input" placeholder="0 ل.س" min="0">
+            <input type="text" id="modal-note-input" class="note-input" placeholder="إضافة ملاحظة اختيارية..." autocomplete="off">
             <div class="icon-actions">
                 <button class="btn-icon add" onclick="executeAction('add')"><i class="fa-solid fa-plus"></i> إضافة دين</button>
                 <button class="btn-icon sub" onclick="executeAction('sub')"><i class="fa-solid fa-check"></i> تسديد</button>
@@ -288,7 +294,10 @@
 
             Object.keys(data).forEach(id => {
                 const player = data[id];
+                
+                // تحديد الحالة بناءً على قيمة الحساب
                 const hasDebt = player.balance > 0;
+                const hasCredit = player.balance < 0;
 
                 if (player.balance > 0) {
                     totalDebt += player.balance;
@@ -296,12 +305,22 @@
                     if (player.balance > maxDebt) maxDebt = player.balance;
                 }
 
+                // تجهيز النص البرمجي للعرض بدقة تفادياً للتلاشي
+                let balanceText = '';
+                if (player.balance > 0) {
+                    balanceText = `${player.balance} ل.س (عليه)`;
+                } else if (player.balance < 0) {
+                    balanceText = `${Math.abs(player.balance)} ل.س (له)`;
+                } else {
+                    balanceText = `0 ل.س`;
+                }
+
                 const card = document.createElement('div');
                 card.className = 'player-card';
                 card.onclick = () => openActionModal(id, player.name);
                 card.innerHTML = `
                     <div class="player-name">${player.name}</div>
-                    <div class="player-balance ${hasDebt ? 'has-debt' : ''}">${player.balance} ل.س</div>
+                    <div class="player-balance ${hasDebt ? 'has-debt' : ''}" style="${hasCredit ? 'color: var(--success);' : ''}">${balanceText}</div>
                 `;
                 container.appendChild(card);
             });
@@ -362,6 +381,7 @@
         activePlayerId = id;
         document.getElementById('modal-player-name').innerHTML = `<i class="fa-solid fa-user" style="color: var(--accent-color);"></i> ${name}`;
         document.getElementById('modal-amount-input').value = '';
+        document.getElementById('modal-note-input').value = ''; // تصفير حقل الملاحظة عند الفتح
         document.getElementById('action-modal').style.display = 'flex';
         document.getElementById('modal-amount-input').focus();
 
@@ -387,12 +407,19 @@
             
             const row = document.createElement('div');
             row.className = 'history-item';
+            
+            // بناء هيكلية العرض مع إضافة جزء الملاحظة في حال كانت متوفرة
+            let noteHtml = item.note ? `<div class="history-note"><i class="fa-regular fa-comment-dots"></i> ${item.note}</div>` : '';
+            
             row.innerHTML = `
-                <div>
-                    <span class="${classType}">${item.type}:</span> 
-                    <span>${item.amount} ل.س</span>
+                <div class="history-main-info">
+                    <div>
+                        <span class="${classType}">${item.type}:</span> 
+                        <span>${item.amount} ل.س</span>
+                    </div>
+                    <span class="history-date">${item.date}</span>
                 </div>
-                <span class="history-date">${item.date}</span>
+                ${noteHtml}
             `;
             listContainer.appendChild(row);
         });
@@ -402,7 +429,9 @@
         if (!activePlayerId) return;
 
         const input = document.getElementById('modal-amount-input');
+        const noteInput = document.getElementById('modal-note-input');
         const amount = parseInt(input.value) || 0;
+        const note = noteInput.value.trim(); // جلب الملاحظة المكتوبة
         const playerRef = db.ref(`players/${activePlayerId}`);
 
         if (action === 'delete') {
@@ -424,8 +453,7 @@
                 currentBalance += amount;
                 actionType = 'إضافة';
             } else if (action === 'sub') {
-                currentBalance -= amount;
-                if (currentBalance < 0) currentBalance = 0;
+                currentBalance -= amount; // تعديل رياضي بحت دون تصفير تلقائي
                 actionType = 'تسديد';
             } else if (action === 'clear') {
                 if (!confirm("تصفير كامل ديون هذا الزبون؟")) return;
@@ -439,10 +467,12 @@
 
             const updates = { balance: currentBalance };
             playerRef.update(updates).then(() => {
+                // حفظ البيانات كاملة مع حقل الـ note الجديد بجانب البقية
                 playerRef.child('history').push({
                     type: actionType,
                     amount: loggedAmount,
-                    date: dateStr
+                    date: dateStr,
+                    note: note // حفظ الملاحظة هنا
                 }).then(() => closeActionModal());
             });
         });
