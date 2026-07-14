@@ -173,7 +173,7 @@
             <button class="btn-close" onclick="closeActionModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body">
-            <input type="number" id="modal-amount-input" placeholder="0 ل.س" min="0">
+            <input type="text" id="modal-amount-input" placeholder="0 ل.س" inputmode="numeric">
             <input type="text" id="modal-note-input" class="note-input" placeholder="إضافة ملاحظة اختيارية..." autocomplete="off">
             <div class="icon-actions">
                 <button class="btn-icon add" onclick="executeAction('add')"><i class="fa-solid fa-plus"></i> إضافة دين</button>
@@ -207,6 +207,52 @@
     const dbRef = db.ref('players');
 
     let activePlayerId = null;
+    let rawAmountValue = ''; // لتخزين القيمة الرقمية الخام
+
+    // --- دالة مساعدة لتنسيق الأرقام بفاصلة الآلاف ---
+    function formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    // --- دالة لاستخراج الرقم من النص المنسق ---
+    function parseFormattedNumber(str) {
+        return parseInt(str.replace(/,/g, '')) || 0;
+    }
+
+    // --- معالج الكتابة في حقل المبلغ (تنسيق تلقائي) ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const amountInput = document.getElementById('modal-amount-input');
+        
+        amountInput.addEventListener('input', function(e) {
+            // إزالة كل ما ليس أرقاماً
+            let raw = this.value.replace(/,/g, '').replace(/[^0-9]/g, '');
+            
+            if (raw === '') {
+                this.value = '';
+                rawAmountValue = '';
+                return;
+            }
+            
+            const num = parseInt(raw);
+            rawAmountValue = String(num);
+            this.value = formatNumber(num);
+        });
+
+        // عند فقدان التركيز، تأكد من التنسيق الصحيح
+        amountInput.addEventListener('blur', function() {
+            if (this.value === '') return;
+            const num = parseFormattedNumber(this.value);
+            if (num > 0) {
+                this.value = formatNumber(num);
+                rawAmountValue = String(num);
+            }
+        });
+
+        // عند التركيز، حرّك المؤشر إلى نهاية النص
+        amountInput.addEventListener('focus', function() {
+            this.setSelectionRange(this.value.length, this.value.length);
+        });
+    });
 
     // --- نظام المصادقة وإدارة الأجهزة ---
     function checkDeviceAuth() {
@@ -216,7 +262,6 @@
             return;
         }
 
-        // التحقق المستمر ومراقبة إلغاء المصادقة من قاعدة البيانات فوراً
         db.ref(`allowed_devices/${deviceId}`).on('value', snapshot => {
             if (snapshot.exists() && snapshot.val() === true) {
                 showMainContent();
@@ -235,7 +280,6 @@
     function showMainContent() {
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('main-content').style.display = 'block';
-        // بدء الاستماع الحقيقي للبيانات فقط بعد نجاح المصادقة لضمان الأمان
         initAppListeners();
     }
 
@@ -246,7 +290,6 @@
         db.ref('auth_code').once('value', snapshot => {
             const exactCode = snapshot.val();
             
-            // في حال كانت قاعدة البيانات فارغة وجديدة تماماً
             if (exactCode === null) {
                 alert("لم يتم تعيين رمز في قاعدة البيانات بعد. تم تعيين رمزك الحالي كرمز افتراضي للوحة التحكم.");
                 db.ref('auth_code').set(inputCode);
@@ -263,7 +306,6 @@
     }
 
     function authorizeCurrentDevice() {
-        // توليد معرف فريد عشوائي للجهاز الحالي
         const newDeviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
         db.ref(`allowed_devices/${newDeviceId}`).set(true).then(() => {
             localStorage.setItem('resonta_device_id', newDeviceId);
@@ -271,12 +313,10 @@
         });
     }
 
-    // استدعاء التحقق عند التحميل
     checkDeviceAuth();
 
-    // السير المعتاد للتطبيق بعد تخطي شاشة القفل
     function initAppListeners() {
-        dbRef.off('value'); // تجنب التكرار
+        dbRef.off('value');
         dbRef.on('value', snapshot => {
             const data = snapshot.val();
             const container = document.getElementById('players-container');
@@ -295,7 +335,6 @@
             Object.keys(data).forEach(id => {
                 const player = data[id];
                 
-                // تحديد الحالة بناءً على قيمة الحساب
                 const hasDebt = player.balance > 0;
                 const hasCredit = player.balance < 0;
 
@@ -305,12 +344,12 @@
                     if (player.balance > maxDebt) maxDebt = player.balance;
                 }
 
-                // تجهيز النص البرمجي للعرض بدقة تفادياً للتلاشي
                 let balanceText = '';
+                const formattedBalance = formatNumber(Math.abs(player.balance));
                 if (player.balance > 0) {
-                    balanceText = `${player.balance} ل.س (عليه)`;
+                    balanceText = `${formattedBalance} ل.س (عليه)`;
                 } else if (player.balance < 0) {
-                    balanceText = `${Math.abs(player.balance)} ل.س (له)`;
+                    balanceText = `${formattedBalance} ل.س (له)`;
                 } else {
                     balanceText = `0 ل.س`;
                 }
@@ -333,7 +372,7 @@
         });
     }
 
-    // --- نظام المظهر (داكن / فاتح) ---
+    // --- نظام المظهر ---
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     updateThemeIcon(savedTheme);
@@ -372,16 +411,17 @@
     }
 
     function updateStats(total, count, max) {
-        document.getElementById('stat-total-debt').innerText = `${total} ل.س`;
+        document.getElementById('stat-total-debt').innerText = `${formatNumber(total)} ل.س`;
         document.getElementById('stat-debtors-count').innerText = count;
-        document.getElementById('stat-max-debt').innerText = `${max} ل.س`;
+        document.getElementById('stat-max-debt').innerText = `${formatNumber(max)} ل.س`;
     }
 
     function openActionModal(id, name) {
         activePlayerId = id;
         document.getElementById('modal-player-name').innerHTML = `<i class="fa-solid fa-user" style="color: var(--accent-color);"></i> ${name}`;
         document.getElementById('modal-amount-input').value = '';
-        document.getElementById('modal-note-input').value = ''; // تصفير حقل الملاحظة عند الفتح
+        document.getElementById('modal-note-input').value = '';
+        rawAmountValue = '';
         document.getElementById('action-modal').style.display = 'flex';
         document.getElementById('modal-amount-input').focus();
 
@@ -408,14 +448,13 @@
             const row = document.createElement('div');
             row.className = 'history-item';
             
-            // بناء هيكلية العرض مع إضافة جزء الملاحظة في حال كانت متوفرة
             let noteHtml = item.note ? `<div class="history-note"><i class="fa-regular fa-comment-dots"></i> ${item.note}</div>` : '';
             
             row.innerHTML = `
                 <div class="history-main-info">
                     <div>
                         <span class="${classType}">${item.type}:</span> 
-                        <span>${item.amount} ل.س</span>
+                        <span>${formatNumber(item.amount)} ل.س</span>
                     </div>
                     <span class="history-date">${item.date}</span>
                 </div>
@@ -430,8 +469,10 @@
 
         const input = document.getElementById('modal-amount-input');
         const noteInput = document.getElementById('modal-note-input');
-        const amount = parseInt(input.value) || 0;
-        const note = noteInput.value.trim(); // جلب الملاحظة المكتوبة
+        
+        // استخراج القيمة الرقمية من الحقل المنسق
+        const amount = parseFormattedNumber(input.value);
+        const note = noteInput.value.trim();
         const playerRef = db.ref(`players/${activePlayerId}`);
 
         if (action === 'delete') {
@@ -453,7 +494,7 @@
                 currentBalance += amount;
                 actionType = 'إضافة';
             } else if (action === 'sub') {
-                currentBalance -= amount; // تعديل رياضي بحت دون تصفير تلقائي
+                currentBalance -= amount;
                 actionType = 'تسديد';
             } else if (action === 'clear') {
                 if (!confirm("تصفير كامل ديون هذا الزبون؟")) return;
@@ -467,12 +508,11 @@
 
             const updates = { balance: currentBalance };
             playerRef.update(updates).then(() => {
-                // حفظ البيانات كاملة مع حقل الـ note الجديد بجانب البقية
                 playerRef.child('history').push({
                     type: actionType,
                     amount: loggedAmount,
                     date: dateStr,
-                    note: note // حفظ الملاحظة هنا
+                    note: note
                 }).then(() => closeActionModal());
             });
         });
